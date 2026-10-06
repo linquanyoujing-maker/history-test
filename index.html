@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的历史原型 · 人格测试</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:#0c0b10;color:#ece9e2;min-height:100vh;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;line-height:1.75;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:
+      radial-gradient(circle at 18% -5%, rgba(212,175,55,.13), transparent 45%),
+      radial-gradient(circle at 88% 105%, rgba(126,92,200,.12), transparent 48%);
+  }
+  .wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:0 22px 70px}
+  .screen{display:none}
+  .screen.active{display:block;animation:fade .55s cubic-bezier(.2,.7,.3,1)}
+  @keyframes fade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  h1,h2,h3,.serif{font-family:"Songti SC","STSong","SimSun",Georgia,"Times New Roman",serif;font-weight:600}
+
+  /* ---------- 开场 ---------- */
+  #intro{padding-top:14vh;text-align:center}
+  .kicker{
+    font-size:12px;letter-spacing:.32em;color:#c9a227;text-transform:uppercase;
+    margin-bottom:22px;opacity:.9
+  }
+  #intro h1{
+    font-size:clamp(34px,8vw,52px);letter-spacing:.06em;line-height:1.25;
+    background:linear-gradient(160deg,#fff9e6 10%,#e8c96a 55%,#a8863a 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    margin-bottom:22px;
+  }
+  .lead{font-size:15.5px;color:#a9a49a;max-width:460px;margin:0 auto 30px;line-height:1.9}
+  .meta{list-style:none;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:42px}
+  .meta li{
+    font-size:12.5px;color:#8e897f;border:1px solid rgba(255,255,255,.1);
+    padding:6px 14px;border-radius:999px;letter-spacing:.04em
+  }
+  .btn{
+    display:inline-block;border:none;cursor:pointer;font-family:inherit;font-size:15px;
+    padding:15px 46px;border-radius:999px;letter-spacing:.12em;
+    background:linear-gradient(135deg,#e8c96a,#b8912f);color:#1a1508;
+    font-weight:700;transition:.28s;box-shadow:0 10px 30px -10px rgba(212,175,55,.6)
+  }
+  .btn:hover{transform:translateY(-2px);box-shadow:0 16px 38px -12px rgba(212,175,55,.75)}
+  .btn.ghost{
+    background:transparent;color:#c9a227;border:1px solid rgba(201,162,39,.45);
+    box-shadow:none;font-weight:600;padding:13px 38px
+  }
+  .btn.ghost:hover{background:rgba(201,162,39,.1);box-shadow:none}
+
+  /* ---------- 答题 ---------- */
+  #quiz{padding-top:52px}
+  .quiz-head{margin-bottom:38px}
+  .progress{height:3px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;margin-bottom:14px}
+  .bar{height:100%;width:0;border-radius:3px;background:linear-gradient(90deg,#b8912f,#e8c96a);transition:width .45s cubic-bezier(.3,.8,.3,1)}
+  .counter{font-size:12px;color:#7d786f;letter-spacing:.16em;text-align:right}
+  .counter span{color:#c9a227;font-weight:700}
+
+  .qtext{font-size:clamp(20px,4.6vw,25px);line-height:1.6;letter-spacing:.02em;margin-bottom:28px;color:#f6f3ea}
+  .options{display:flex;flex-direction:column;gap:12px}
+  .opt{
+    display:flex;gap:15px;align-items:flex-start;text-align:left;cursor:pointer;
+    background:rgba(255,255,255,.028);border:1px solid rgba(255,255,255,.075);
+    border-radius:15px;padding:17px 20px;color:#ddd8ce;font-size:15px;line-height:1.7;
+    font-family:inherit;transition:.22s;width:100%
+  }
+  .opt:hover{background:rgba(212,175,55,.07);border-color:rgba(212,175,55,.42);transform:translateX(4px)}
+  .opt .mark{
+    flex:0 0 26px;height:26px;border-radius:8px;display:grid;place-items:center;
+    font-size:12.5px;font-weight:700;color:#c9a227;border:1px solid rgba(201,162,39,.35);
+    background:rgba(201,162,39,.07);margin-top:2px;transition:.22s
+  }
+  .opt:hover .mark{background:#c9a227;color:#161208;border-color:#c9a227}
+  .opt.picked{background:rgba(212,175,55,.16);border-color:#c9a227}
+  .opt.picked .mark{background:#c9a227;color:#161208}
+  .fade-out{opacity:0;transform:translateY(-10px);transition:.24s}
+
+  /* ---------- 结果 ---------- */
+  #result{padding-top:48px}
+  .res-head{text-align:center;margin-bottom:38px}
+  .proto-name{
+    font-size:clamp(42px,11vw,68px);letter-spacing:.14em;line-height:1.2;margin:6px 0 14px;
+    background:linear-gradient(165deg,#fffbe9 5%,#e8c96a 50%,#a8863a 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .proto-tag{
+    display:inline-block;font-size:12.5px;letter-spacing:.22em;color:#c9a227;
+    border:1px solid rgba(201,162,39,.4);padding:6px 20px;border-radius:999px;margin-bottom:14px
+  }
+  .proto-id{font-size:13.5px;color:#8e897f;letter-spacing:.05em}
+
+  .bars{margin:34px 0 40px;display:flex;flex-direction:column;gap:11px}
+  .barrow{display:flex;align-items:center;gap:12px;font-size:12.5px}
+  .barlabel{flex:0 0 88px;color:#8e897f;letter-spacing:.06em;text-align:right}
+  .bartrack{flex:1;height:7px;background:rgba(255,255,255,.07);border-radius:7px;overflow:hidden}
+  .barfill{height:100%;width:0;border-radius:7px;background:linear-gradient(90deg,#6d6350,#8d8064);
+    transition:width .9s cubic-bezier(.25,.9,.3,1)}
+  .barrow.hi .barlabel{color:#e8c96a;font-weight:700}
+  .barrow.hi .barfill{background:linear-gradient(90deg,#b8912f,#e8c96a)}
+  .barval{flex:0 0 26px;color:#6f6a61;font-variant-numeric:tabular-nums}
+  .barrow.hi .barval{color:#e8c96a}
+
+  .card{
+    background:rgba(255,255,255,.028);border:1px solid rgba(255,255,255,.07);
+    border-radius:17px;padding:24px 24px 22px;margin-bottom:14px
+  }
+  .card h3{
+    font-size:14px;letter-spacing:.2em;color:#c9a227;margin-bottom:14px;
+    display:flex;align-items:center;gap:10px
+  }
+  .card h3::before{content:"";width:16px;height:1px;background:#c9a227;opacity:.7}
+  .card p{font-size:15px;color:#cdc8be;line-height:1.95}
+  .card ul{list-style:none;display:flex;flex-direction:column;gap:9px}
+  .card li{font-size:14.5px;color:#cdc8be;line-height:1.8;padding-left:18px;position:relative}
+  .card li::before{content:"";position:absolute;left:0;top:11px;width:5px;height:5px;border-radius:50%;background:#c9a227;opacity:.75}
+  .metaphor{
+    border-left:2px solid #c9a227;padding:2px 0 2px 18px;font-family:"Songti SC","STSong",serif;
+    font-size:16px;color:#e6dfd0;line-height:1.95;font-style:italic
+  }
+  .quote{
+    text-align:center;font-family:"Songti SC","STSong",serif;font-size:17px;
+    color:#e8c96a;line-height:2;letter-spacing:.04em;padding:26px 14px 6px
+  }
+  .res-actions{text-align:center;margin-top:36px}
+  .note{text-align:center;font-size:12px;color:#66625b;margin-top:18px;letter-spacing:.06em}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ======== 开场 ======== -->
+  <section id="intro" class="screen active">
+    <p class="kicker">Personality · History · Archetype</p>
+    <h1>我的历史原型</h1>
+    <p class="lead">12 道题，找出与你灵魂共振的那个历史人物。<br>可能是秦始皇，也可能是李白。</p>
+    <ul class="meta">
+      <li>共 12 题</li>
+      <li>约 3 分钟</li>
+      <li>凭第一直觉作答</li>
+    </ul>
+    <button class="btn" id="startBtn">开 始 测 试</button>
+  </section>
+
+  <!-- ======== 答题 ======== -->
+  <section id="quiz" class="screen">
+    <div class="quiz-head">
+      <div class="progress"><div class="bar" id="bar"></div></div>
+      <div class="counter"><span id="cur">1</span> / 12</div>
+    </div>
+    <div id="qwrap">
+      <h2 class="qtext" id="qtext"></h2>
+      <div class="options" id="options"></div>
+    </div>
+  </section>
+
+  <!-- ======== 结果 ======== -->
+  <section id="result" class="screen"></section>
+
+</div>
+
+<script>
+/* =========================================================
+   题库：每题 4 个选项，各带维度分值（主维度+2，次维度+1）
+   维度：P权力 O秩序 F自由 R理性 E共情 A冒险
+   ========================================================= */
+const QUESTIONS = [
+  { q:"当你接手一个混乱的团队项目，你首先会：", opts:[
+    { t:"明确目标、分工和截止时间，让所有人各就各位。", s:{P:2,O:1} },
+    { t:"梳理现有资源和流程，找出最关键的问题。",       s:{O:2,R:1} },
+    { t:"打破原方案，提出一个更自由、更有创意的新方向。", s:{F:2,A:1} },
+    { t:"先和核心成员深聊，分析各方动机与利益。",       s:{R:2,E:1} }
+  ]},
+  { q:"你突然得到一个高风险但可能改变命运的机会，你会：", opts:[
+    { t:"先考虑它会如何影响身边人和团队，再决定。", s:{E:2,F:1} },
+    { t:"凭直觉抓住它，边做边学，享受未知。",       s:{A:2,P:1} },
+    { t:"迅速判断谁能帮你，并争取主导权。",         s:{P:2,O:1} },
+    { t:"列出收益、成本和最坏情况，按计划推进。",   s:{O:2,R:1} }
+  ]},
+  { q:"面对一条你并不认同的权威规则，你通常：", opts:[
+    { t:"直接质疑它，按自己的方式行动。",           s:{F:2,A:1} },
+    { t:"表面遵守，暗中寻找更聪明的解法。",         s:{R:2,E:1} },
+    { t:"理解制定规则者的难处，尝试温和沟通。",     s:{E:2,F:1} },
+    { t:"挑战权威，用行动证明新规则更好。",         s:{A:2,P:1} }
+  ]},
+  { q:"你更享受哪一种成就感？", opts:[
+    { t:"建立一套能长久运转的制度，让事情有秩序。", s:{P:2,O:1} },
+    { t:"把复杂混乱的信息整理成清晰体系。",         s:{O:2,R:1} },
+    { t:"创作一件别人从未做过的作品。",             s:{F:2,A:1} },
+    { t:"看透一个难题背后的规律，并帮助他人理解。", s:{R:2,E:1} }
+  ]},
+  { q:"朋友做了让你失望的事，你第一反应是：", opts:[
+    { t:"感到受伤，但试着理解他的处境。",           s:{E:2,F:1} },
+    { t:"立刻切断联系，去探索新的关系和生活。",     s:{A:2,P:1} },
+    { t:"直接指出问题，要求他给出解释和补偿。",     s:{P:2,O:1} },
+    { t:"冷静评估这段关系是否还值得继续。",         s:{O:2,R:1} }
+  ]},
+  { q:"你理想中的生活更接近：", opts:[
+    { t:"无拘无束，随时可以出发去冒险。",           s:{F:2,A:1} },
+    { t:"不断学习，靠智慧解决难题并理解世界。",     s:{R:2,E:1} },
+    { t:"和所爱之人互相支持，让周围人过得更好。",   s:{E:2,F:1} },
+    { t:"有影响力，能推动大事，留下自己的印记。",   s:{A:2,P:1} }
+  ]},
+  { q:"在陌生社交场合，你通常会：", opts:[
+    { t:"观察谁是关键人物，并主动建立联系。",       s:{P:2,O:1} },
+    { t:"先了解场合规则和话题，再稳妥加入。",       s:{O:2,R:1} },
+    { t:"找有趣的人聊新鲜想法，不在乎是否合群。",   s:{F:2,A:1} },
+    { t:"倾听不同人的故事，分析他们的性格和动机。", s:{R:2,E:1} }
+  ]},
+  { q:"你最容易被人批评为：", opts:[
+    { t:"太敏感、太心软，总替别人考虑。",           s:{E:2,F:1} },
+    { t:"太冲动、太爱冒险，不顾后果。",             s:{A:2,P:1} },
+    { t:"太强势、控制欲强，什么都要管。",           s:{P:2,O:1} },
+    { t:"太保守、太讲规矩，不够灵活。",             s:{O:2,R:1} }
+  ]},
+  { q:"如果必须牺牲一样，你最难放弃：", opts:[
+    { t:"自由和独立。",                             s:{F:2,A:1} },
+    { t:"理性和真相。",                             s:{R:2,E:1} },
+    { t:"爱与联结。",                               s:{E:2,F:1} },
+    { t:"权力和影响力。",                           s:{A:2,P:1} }
+  ]},
+  { q:"面对一个长期目标，你更倾向：", opts:[
+    { t:"制定详细计划，分配资源，严格推进。",       s:{P:2,O:1} },
+    { t:"建立稳定流程，定期检查，逐步优化。",       s:{O:2,R:1} },
+    { t:"保持灵活，随时根据灵感调整方向。",         s:{F:2,A:1} },
+    { t:"研究底层逻辑，找到最高效的路径。",         s:{R:2,E:1} }
+  ]},
+  { q:"你心目中的英雄更像：", opts:[
+    { t:"为弱者发声、推动公平的人。",               s:{E:2,F:1} },
+    { t:"探索未知、突破边界的人。",                 s:{A:2,P:1} },
+    { t:"统一乱世、建立秩序的人。",                 s:{P:2,O:1} },
+    { t:"看透人性、以智取胜的人。",                 s:{O:2,R:1} }
+  ]},
+  { q:"临终时，你希望被记住为：", opts:[
+    { t:"我活出了真实的自己。",                     s:{F:2,A:1} },
+    { t:"我理解并解释了世界。",                     s:{R:2,E:1} },
+    { t:"我爱过，也被爱过。",                       s:{E:2,F:1} },
+    { t:"我建立了不朽的事业。",                     s:{A:2,P:1} }
+  ]}
+];
+
+/* ========================= 原型数据 ========================= */
+const PROTOTYPES = {
+  OP:{ name:"秦始皇", tag:"权力 × 秩序", id:"中国历史上第一位皇帝 · 统一六国，书同文、车同轨",
+    core:"你是终结混乱的人。当你看到散乱的局面，第一反应不是抱怨，而是重新划定边界、建立标准、让事情按你的秩序运转。你相信世界需要被整理，而你有能力整理它。",
+    traits:["目标感极强，认定方向后能承受巨大压力推进","擅长建立结构、标准和长期工程","对效率、执行、统一有天然执念","不喜欢模棱两可、拖泥带水、各说各话"],
+    strengths:["决断力","组织力","执行力","把理想变成制度的能力"],
+    shadows:["容易专制、不容异见","习惯把人当工具","内心孤独，很难被真正理解"],
+    metaphor:"以强大意志统一局面，但也可能被自己建立的系统反噬。",
+    roles:"创始人 · 总负责人 · 制度设计者 · 大型工程主导者",
+    quote:"你不是在参与游戏，你是在重写规则。" },
+
+  PR:{ name:"曹操", tag:"权力 × 理性", id:"东汉末年政治家、军事家、文学家 · 治世之能臣，乱世之奸雄",
+    core:"你是乱局中的务实者。你不迷信道德口号，也不被情绪左右，你关心的是：谁能用、怎么赢、代价是什么。",
+    traits:["冷静、务实，善于识人和用人","能在信息不全时迅速做判断","不被单一价值观绑架，能屈能伸","对背叛和失控高度敏感"],
+    strengths:["战略眼光","应变能力","组织人才","看透动机"],
+    shadows:["多疑、冷酷","容易被争议包围","很难完全信任他人"],
+    metaphor:"你适合在最复杂的局面中掌局，但很难获得纯粹的信任与安宁。",
+    roles:"战略决策者 · 创业者 · 危机管理者 · 谈判者",
+    quote:"你赢在清醒，也累在清醒。" },
+
+  EP:{ name:"林肯", tag:"权力 × 共情", id:"美国第16任总统 · 废除奴隶制，领导南北战争，维护联邦统一",
+    core:"你把权力当作责任，而不是奖赏。你能理解不同人的痛苦，也愿意为了更大的整体承受误解和撕裂。",
+    traits:["有强大的道德内核，但不轻易道德绑架别人","能包容不同立场，擅长把对立的人拉到同一张桌子上","承受力极强，能在长期压力下坚持","内心常有忧郁和孤独"],
+    strengths:["领导力","包容力","沟通力","坚韧"],
+    shadows:["过度妥协","内心撕裂","把痛苦都留给自己"],
+    metaphor:"用权力缝合分裂，代价常由自己承担。",
+    roles:"领导者 · 调解者 · 公共事务推动者 · 团队凝聚者",
+    quote:"你不是最强硬的人，但你是能让大家不散的人。" },
+
+  FP:{ name:"武则天", tag:"权力 × 自由", id:"中国历史上唯一的女皇帝 · 打破性别与礼制束缚，执掌唐朝数十年",
+    core:"你不接受别人给你规定的剧本。你不在乎「这不该是你做的事」，你只在乎「我能不能做到」。",
+    traits:["极强的自我意志和野心","敢于打破性别、阶层、身份的限制","政治手腕强，善于用人也善于清除障碍","在意评价，但不会被评价拦住"],
+    strengths:["胆识","魄力","执行力","在逆境中翻盘的能力"],
+    shadows:["残酷","争议缠身","孤独","容易为达目的牺牲关系"],
+    metaphor:"以叛逆者身份掌控规则，最终成为规则本身。",
+    roles:"破局者 · 掌权者 · 行业颠覆者 · 从零到一的开拓者",
+    quote:"别人给你天花板，你把天花板拆了。" },
+
+  AP:{ name:"亚历山大", tag:"权力 × 冒险", id:"马其顿国王 · 西方史上最著名的征服者之一，32岁前建立横跨欧亚非的帝国",
+    core:"你渴望把世界推向更远的地方。速度、魅力、行动力是你的武器，你受不了原地踏步。",
+    traits:["天生的行动派，想到就做","有强烈个人魅力和感召力","喜欢挑战极限，讨厌平庸和重复","容易被新的目标点燃"],
+    strengths:["勇气","感召力","执行力","开拓精神"],
+    shadows:["过度扩张","难以安定","燃烧太快","忽视长期经营"],
+    metaphor:"用冒险改变世界，但帝国可能随你而去。",
+    roles:"开拓者 · 创业者 · 探险家 · 从零打开局面的先锋",
+    quote:"你不是在守成，你是在不断地出发。" },
+
+  OR:{ name:"诸葛亮", tag:"秩序 × 理性", id:"三国时期蜀汉丞相 · 政治家、军事家，鞠躬尽瘁，死而后已",
+    core:"你是那个把事情扛下来的人。你重责任、重系统、重谋略，习惯把理想拆成一步一步可以执行的计划。",
+    traits:["极度负责，答应的事一定做到","擅长规划、统筹和长线布局","冷静、克制，很少失控","对细节有强烈掌控欲"],
+    strengths:["规划力","忠诚","冷静","系统思维"],
+    shadows:["事必躬亲","过度谨慎","难以放手","过度劳累"],
+    metaphor:"以理性支撑理想，但难违天命。",
+    roles:"军师 · 总规划师 · 运营负责人 · 长期项目操盘手",
+    quote:"你把所有事都想到了，却常常忘了给自己留退路。" },
+
+  EO:{ name:"曼德拉", tag:"秩序 × 共情", id:"南非反种族隔离领袖 · 首位黑人总统，以和解而非复仇结束种族压迫",
+    core:"你相信和解比复仇更难，也更有力量。你愿意为了长期的公正，忍受漫长而具体的代价。",
+    traits:["有极强的道德信念和忍耐力","能跨越仇恨，看见对方也是人","擅长用象征和姿态凝聚人心","愿意为集体牺牲个人生活"],
+    strengths:["宽恕","象征力","长期主义","感染力"],
+    shadows:["妥协过多","被神化","私人生活受损","被期待压垮"],
+    metaphor:"你适合缝合撕裂的社会，但缝合的针脚会扎在自己身上。",
+    roles:"公共领袖 · 和平推动者 · 社会运动者 · 道德象征",
+    quote:"你有资格恨，但你选择了更远的东西。" },
+
+  FO:{ name:"华盛顿", tag:"秩序 × 自由", id:"美国首任总统 · 独立战争总司令，两任后主动卸任",
+    core:"你既追求自由，也懂得用制度约束权力，包括约束你自己。你知道真正的自由不是没有边界，而是边界由谁定。",
+    traits:["有原则，也懂得克制","看重信誉和长期信任","不迷恋权力本身，更在意它能建立什么","关键时刻愿意退一步，成全更大的事"],
+    strengths:["克制","信誉","制度建设","自我约束"],
+    shadows:["精英视角的局限","内在矛盾","有时过于审慎"],
+    metaphor:"以自由之名建立秩序，又以秩序防止自由变成混乱。",
+    roles:"制度设计者 · 组织创建者 · 需要公信力的领导者",
+    quote:"你最了不起的能力，是知道什么时候放手。" },
+
+  AO:{ name:"郑和", tag:"秩序 × 冒险", id:"明代航海家 · 七下西洋，率当时世界最大船队远航至东非",
+    core:"你能在强大组织的支持下走向未知。你有国家使命感，也有跨文化的好奇与包容。",
+    traits:["有组织能力，也有探索欲","尊重不同文化，不轻易征服别人","目标明确，执行有条不紊","对外面的世界有强烈兴趣"],
+    strengths:["组织力","探索力","外交能力","跨文化理解"],
+    shadows:["受制于体制","事业随上层转向而中止","个人意志空间有限"],
+    metaphor:"你代表一个体系去开拓边界，但边界之外仍需体系支持。",
+    roles:"跨国业务开拓者 · 外交与文化传播者 · 大型项目探索者",
+    quote:"你走的不是自己的路，但你把它走到了很远的地方。" },
+
+  ER:{ name:"爱因斯坦", tag:"理性 × 共情", id:"20世纪最伟大的物理学家之一 · 相对论创立者，同时也是和平主义者与人道主义者",
+    core:"你用冷静的头脑看世界，也用柔软的心看人类。你相信真理值得追，人也值得关心。",
+    traits:["极强的洞察力和独立思考能力","不盲从权威，也不随波逐流","关心人类整体命运，而不只是自己的领域","有点天真，有点固执，有点不合群"],
+    strengths:["洞察力","独立性","创造力","人道主义"],
+    shadows:["私人关系复杂","政治判断有时天真","容易沉浸在自己的世界"],
+    metaphor:"理性让你看得远，共情让你关心人类，但两者常常互相拉扯。",
+    roles:"研究者 · 思想者 · 公共知识分子 · 跨界创造者",
+    quote:"你在想宇宙，也在想人类。" },
+
+  FR:{ name:"苏格拉底", tag:"理性 × 自由", id:"古希腊哲学家 · 以诘问法闻名，最终被判死刑，从容饮鸩",
+    core:"你天生爱追问。你不接受「因为大家都这样」的答案，也不怕质疑权威。",
+    traits:["思维锋利，喜欢追问本质","不服从现成结论，也不服从权威","有强烈的自我一致性，不愿违背信念","常常显得不合群，甚至让人不舒服"],
+    strengths:["思辨力","勇气","独立人格","逻辑清晰"],
+    shadows:["容易激怒他人","不合群","为原则付出代价","忽视现实妥协"],
+    metaphor:"为自由思考付出代价，但思想会继续流传。",
+    roles:"哲学家 · 批评者 · 研究者 · 独立创作者",
+    quote:"你宁愿被讨厌，也不愿被说服去相信你不信的东西。" },
+
+  AR:{ name:"达芬奇", tag:"理性 × 创造", id:"文艺复兴时期意大利全才 · 画家、发明家、解剖学家、工程师",
+    core:"你跨界、好奇、喜欢实验。你既想理解世界怎么运转，也想创造世界还没有的东西。",
+    traits:["好奇心极强，什么都想学一点","善于观察细节，也善于想象未来","讨厌被单一身份定义","常常同时开很多项目"],
+    strengths:["创造力","观察力","跨界整合","想象力"],
+    shadows:["拖延","分散","未完成太多","难以聚焦"],
+    metaphor:"你用理性探索，用创造超越时代，但常常留下一堆半成品。",
+    roles:"设计师 · 发明者 · 跨界创作者 · 研究与创作结合的人",
+    quote:"你的问题不是没有才华，而是才华太多。" },
+
+  EF:{ name:"甘地", tag:"共情 × 自由", id:"印度独立运动领袖 · 以非暴力不合作推动民族独立",
+    core:"你相信柔性能克刚。你用道德、坚持和简朴，去对抗看起来强大得多的东西。",
+    traits:["有极强的信念和自律","相信手段和目的同样重要","能感召他人，让人愿意跟随","对自己要求极高，甚至苛刻"],
+    strengths:["感召力","坚持","道德力量","非暴力的勇气"],
+    shadows:["固执","理想化","对亲近的人苛刻","政治上有局限"],
+    metaphor:"以自由抗争，但不靠刀剑；最难的不是对抗敌人，而是始终保持自己。",
+    roles:"社会运动者 · 精神领袖 · 公益推动者 · 价值倡导者",
+    quote:"你不靠力量取胜，你靠不动摇取胜。" },
+
+  AE:{ name:"玄奘", tag:"共情 × 冒险", id:"唐代高僧 · 西行取经，历时十七年，行程五万里，带回大量佛经并主持翻译",
+    core:"你为了一个信念，可以独自穿越未知。你能忍受漫长的孤独，因为你相信前方有值得的东西。",
+    traits:["目标感极强，一旦认定就不回头","能忍受孤独和艰苦","对真理和意义有强烈渴望","跨文化理解力强，尊重不同的世界"],
+    strengths:["毅力","目标感","跨文化理解","专注"],
+    shadows:["孤行","对自己严苛","容易忽略身边人的需求","高度依赖信念支撑"],
+    metaphor:"为求知远行，把不可能走成路。",
+    roles:"研究者 · 探索者 · 长期主义者 · 跨文化传播者",
+    quote:"你走的是一条没人陪你走完的路。" },
+
+  AF:{ name:"李白", tag:"自由 × 创造", id:"唐代诗人 · 诗仙，一生漫游、求仕、失意、再漫游",
+    core:"你骨子里最不能忍受的是被束缚、被规定、被要求活成别人期待的样子。你不仅想自由，还想把自由变成创造、体验和表达。",
+    traits:["讨厌被安排、被控制、被等级压住","喜欢新想法、新体验、新地方、新可能","有强烈的表达欲和审美感","真实、不虚伪，讨厌被驯化"],
+    strengths:["创造力","想象力","感染力","生命热情","敢于打破常规"],
+    shadows:["漂泊、不稳定","对现实权力结构天真","情绪起伏大","才华容易被混乱消耗"],
+    metaphor:"把自由变成作品，而不是把自由耗在对抗规则上。",
+    roles:"诗人 · 作家 · 艺术家 · 设计师 · 内容创作者 · 自由职业者 · 跨界创新者",
+    quote:"你不是不能适应现实，而是不愿为了现实把自己磨成一个没有光的人。" }
+};
+
+const DIM_META = {
+  P:{label:"权力·领导"},
+  O:{label:"秩序·责任"},
+  F:{label:"自由·叛逆"},
+  R:{label:"理性·谋略"},
+  E:{label:"共情·人文"},
+  A:{label:"冒险·创造"}
+};
+const DIM_ORDER = ["P","O","F","R","E","A"];
+
+/* ========================= 状态与逻辑 ========================= */
+let current = 0;
+let scores = {P:0,O:0,F:0,R:0,E:0,A:0};
+
+const $ = id => document.getElementById(id);
+const screens = { intro:$("intro"), quiz:$("quiz"), result:$("result") };
+
+function show(name){
+  Object.values(screens).forEach(s => s.classList.remove("active"));
+  screens[name].classList.add("active");
+  window.scrollTo({ top:0, behavior:"instant" in window ? "instant" : "auto" });
+}
+
+function reset(){
+  current = 0;
+  scores = {P:0,O:0,F:0,R:0,E:0,A:0};
+}
+
+/* ---------- 渲染题目 ---------- */
+function renderQuestion(){
+  const q = QUESTIONS[current];
+  $("cur").textContent = current + 1;
+  $("bar").style.width = ((current) / QUESTIONS.length * 100) + "%";
+
+  const wrap = $("qwrap");
+  wrap.classList.remove("fade-out");
+
+  $("qtext").textContent = q.q;
+  const box = $("options");
+  box.innerHTML = "";
+
+  q.opts.forEach((opt, i) => {
+    const btn = document.createElement("button");
+    btn.className = "opt";
+    btn.type = "button";
+    btn.innerHTML = `<span class="mark">${"ABCD"[i]}</span><span>${opt.t}</span>`;
+    btn.addEventListener("click", () => pick(btn, opt.s));
+    box.appendChild(btn);
+  });
+}
+
+/* ---------- 选择答案 ---------- */
+let locked = false;
+function pick(btn, scoreObj){
+  if (locked) return;
+  locked = true;
+  btn.classList.add("picked");
+
+  for (const k in scoreObj) scores[k] += scoreObj[k];
+
+  $("bar").style.width = ((current + 1) / QUESTIONS.length * 100) + "%";
+
+  setTimeout(() => {
+    $("qwrap").classList.add("fade-out");
+    setTimeout(() => {
+      current++;
+      locked = false;
+      if (current < QUESTIONS.length) {
+        renderQuestion();
+      } else {
+        showResult();
+      }
+    }, 240);
+  }, 260);
+}
+
+/* ---------- 计算结果 ---------- */
+function computeResult(){
+  const ranked = DIM_ORDER.slice().sort((a,b) =>
+    (scores[b] - scores[a]) || (DIM_ORDER.indexOf(a) - DIM_ORDER.indexOf(b))
+  );
+  const top = ranked[0], second = ranked[1];
+  const key = [top, second].sort().join("");
+  return { top, second, proto: PROTOTYPES[key] };
+}
+
+/* ---------- 渲染结果 ---------- */
+function showResult(){
+  const { top, second, proto } = computeResult();
+  const maxScore = Math.max(...DIM_ORDER.map(d => scores[d]), 1);
+
+  const barRows = DIM_ORDER.map(d => {
+    const hi = (d === top || d === second) ? " hi" : "";
+    const w = Math.round(scores[d] / maxScore * 100);
+    return `<div class="barrow${hi}">
+      <span class="barlabel">${DIM_META[d].label}</span>
+      <span class="bartrack"><span class="barfill" data-w="${w}"></span></span>
+      <span class="barval">${scores[d]}</span>
+    </div>`;
+  }).join("");
+
+  const li = arr => arr.map(x => `<li>${x}</li>`).join("");
+
+  $("result").innerHTML = `
+    <div class="res-head">
+      <p class="kicker">你的历史原型是</p>
+      <h1 class="proto-name">${proto.name}</h1>
+      <div class="proto-tag">${proto.tag}</div>
+      <p class="proto-id">${proto.id}</p>
+    </div>
+
+    <div class="bars">${barRows}</div>
+
+    <div class="card">
+      <h3>核心</h3>
+      <p>${proto.core}</p>
+    </div>
+
+    <div class="card">
+      <h3>你的性格画像</h3>
+      <ul>${li(proto.traits)}</ul>
+    </div>
+
+    <div class="card">
+      <h3>你的优势</h3>
+      <ul>${li(proto.strengths)}</ul>
+    </div>
+
+    <div class="card">
+      <h3>你的阴影</h3>
+      <ul>${li(proto.shadows)}</ul>
+    </div>
+
+    <div class="card">
+      <h3>命运隐喻</h3>
+      <p class="metaphor">${proto.metaphor}</p>
+    </div>
+
+    <div class="card">
+      <h3>适合你的角色</h3>
+      <p>${proto.roles}</p>
+    </div>
+
+    <p class="quote">「 ${proto.quote} 」</p>
+
+    <div class="res-actions">
+      <button class="btn ghost" id="againBtn">再 测 一 次</button>
+    </div>
+    <p class="note">测试结果仅供自我探索参考，你永远比任何原型都更复杂。</p>
+  `;
+
+  show("result");
+
+  // 进度条动画
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      document.querySelectorAll(".barfill").forEach(el => {
+        el.style.width = el.dataset.w + "%";
+      });
+    }, 120);
+  });
+
+  $("againBtn").addEventListener("click", () => {
+    reset();
+    renderQuestion();
+    show("quiz");
+  });
+}
+
+/* ---------- 启动 ---------- */
+$("startBtn").addEventListener("click", () => {
+  reset();
+  renderQuestion();
+  show("quiz");
+});
+</script>
+</body>
+</html>
